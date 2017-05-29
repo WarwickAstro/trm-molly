@@ -55,7 +55,8 @@ class Molly:
            label to use to describe fluxes
 
        units : (bytes)
-           the units of the fluxes (NB cannot be anything)
+           the units of the fluxes. Should be 'MILLIJANSKYS', 'COUNTS' or
+           'FLAMBDA'.
 
        f : (numpy.array)
            fluxes (fcode == 3, 4 or 5) or counts(fcode = 1 or 2)
@@ -580,46 +581,46 @@ def read_molly_data(fptr, fcode, npix, border):
         f = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
         fe = None
         flabel = 'Counts'
-        funits = ''
+        funits = 'COUNTS'
 
     elif fcode == 2:
         f = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
         fe = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
         flabel = 'Counts'
-        funits = ''
+        funits = 'COUNTS'
 
     elif fcode == 3:
-        counts  = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
-        errors  = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
-        flux    = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
+        counts = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
+        errors = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
+        flux = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
 
-        cfrat      = np.empty(npix, dtype=border + 'f4')
-        mod        = counts == 0.
+        cfrat = np.empty(npix, dtype=border + 'f4')
+        mod = counts == 0.
         cfrat[mod] = flux[mod]
-        mod        = counts != 0.
+        mod = counts != 0.
         cfrat[mod] = counts[mod] / flux[mod]
 
-        fe       = np.empty_like(errors)
-        ok      = cfrat > 0.
-        fe[ok]   = errors[ok] / cfrat[ok]
-        fe[~ok]  = -1.
-        f       = flux
+        fe = np.empty_like(errors)
+        ok = cfrat > 0.
+        fe[ok] = errors[ok] / cfrat[ok]
+        fe[~ok] = -1.
+        f = flux
         f[counts == 0.] = 0.
 
         flabel = 'fnu'
-        funits = 'mJy'
+        funits = 'MILLIJANSKYS'
 
     elif fcode == 4:
         f = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
         fe = None
         flabel = 'fnu'
-        funits = 'mJy'
+        funits = 'MILLIJANSKYS'
 
     elif fcode == 5:
         f = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
         fe = np.fromfile(file=fptr, dtype=border + 'f4', count=npix)
         flabel = 'fnu'
-        funits = 'mJy'
+        funits = 'MILLIJANSKYS'
 
     else:
         raise Exception(
