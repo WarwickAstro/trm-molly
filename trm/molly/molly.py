@@ -21,18 +21,18 @@ class Molly:
     closely aligned with their equivalents in the molly F77 program which
     should be consulted where the following is insufficient::
 
-       fcode : (int)
+      fcode : (int)
            an integer format code. Molly spectra can differ as to whether
            there are errors and this code distinguishes different cases.
 
        head : (OrderedDict)
            ordered dictionary of header items. NB. molly's internal headers
-           support a restricted variety of data types (4-byte integers, 4-
-           and 8-byte floats and strings (32 characters at most). The names
-           (key values) are at most 16 characters. The limitations are
-           enforced if you try to write to molly. Strings will be truncated
-           and invalid data types ignored, so you should check that the
-           headers inside molly are what you expect.
+           support a restricted variety of data types (4-byte integers, 4- and
+           8-byte floats and strings (32 bytes at most). The names (key
+           values) are at most 16 bytes. The limitations are enforced if you
+           try to write to molly. Strings will be truncated and invalid data
+           types ignored, so you should check that the headers inside molly
+           are what you expect.
 
        npix : (int)
            number of pixels
@@ -51,10 +51,10 @@ class Molly:
           need to know this if you use 'wave' to get the wavelengths, but you
           do if you want to manipulate the wavelength scale.
 
-       label : (string)
+       label : (bytes)
            label to use to describe fluxes
 
-       units : (string)
+       units : (bytes)
            the units of the fluxes (NB cannot be anything)
 
        f : (numpy.array)
@@ -93,14 +93,14 @@ class Molly:
         will be at the start of the next spectrum.
         """
 
-        fcode, head, npix, narc, arc, border = _read_molly_head(fptr)
-        label, units, f, fe, cfrat = _read_molly_data(fptr, fcode, npix, border)
+        fcode, head, npix, narc, arc, border = read_molly_head(fptr)
+        label, units, f, fe, cfrat = read_molly_data(fptr, fcode, npix, border)
 
         return cls(fcode, head, npix, narc, arc,
                    label, units, f, fe, cfrat)
 
     @classmethod
-    def fromdata(cls, w, f, fe=None, cfrat=None, head=None, 
+    def fromdata(cls, w, f, fe=None, cfrat=None, head=None,
                  maxdev=0.001, nmax=6):
         """Creates a Molly from wavelength and flux arrays.
 
@@ -181,11 +181,11 @@ class Molly:
                             arc = arc[::-1]
                             break
                     else:
-                        raise Exception('No accepetable poly fit found; best case deviated by {0:f} pixels'.format(dmin))
+                        raise Exception('No acceptable poly fit found; best case deviated by {0:f} pixels'.format(dmin))
 
 
         return cls(fcode, head, npix, narc, arc,
-                   'fnu', 'MILLIJANSKYS', f, fe, cfrat, border)
+                   'fnu', 'MILLIJANSKYS', f, fe, cfrat)
 
     @property
     def wave(self):
@@ -196,13 +196,13 @@ class Molly:
         due to the motion of Earth relative to the Sun, and it will be removed
         from the wavelengths by multiplying the wavelengths by 1-v/c.
         """
-        if narc != 0:
-            x = np.polyval(arc[::-1], np.arange(1.,npix+1,1.)/npix)
-            if narc < 0:
+        if self.narc != 0:
+            x = np.polyval(self.arc[::-1], np.linspace(1,self.npix,self.npix)/self.npix)
+            if self.narc < 0:
                 x = np.exp(x)
             # correct to a heliocentric scale
             if 'Vearth' in self.head:
-                x *= 1.-head['Vearth']/C
+                x *= 1.-self.head['Vearth']/C
             return x
         else:
             raise Exception('No wavelength scale set')
@@ -223,7 +223,7 @@ class Molly:
 
         # a few checks because if we write invalid data it will be very hard
         # to diagnose.
-        if narc != 0 and len(self.arc) != abs(narc):
+        if self.narc != 0 and len(self.arc) != abs(self.narc):
             raise Exception('narc = {:d} does not match number of coefficients in arc (={:d})'.format(self.narc,len(self.arc)))
 
         if len(self.f) != self.npix:
@@ -236,64 +236,66 @@ class Molly:
             raise Exception('npix = {:d} does not match number of flux/count ratios (={:d})'.format(self.npix,len(self.cfrat)))
 
         # first record. F77 writes the number of bytes in each
-        # record at the start and end of the record. 
+        # record at the start and end of the record.
         nbytes = 44
 
-        # split headers into 4 supported types.
+        # split headers into 4 supported types
 
         if self.head is not None:
             # character strings
             chead = Odict()
             for k,v in self.head.items():
                 if isinstance(v, str):
-                    chead['{:-16s}'.format(
-                        k[:min(len(k),16)])] = '{:-32s}'.format(v[:min(len(v),32)])
+                    chead[k] = v
 
             # 8-byte floats
             dhead  = Odict()
             for k,v in self.head.items():
                 if isinstance(v, float):
-                    dhead['{:-16s}'.format(k[:min(len(k),16)])] = v
+                    dhead[k] = v
 
             # 4-byte ints
-            ihead  = subs.Odict()
+            ihead  = Odict()
             for k,v in self.head.items():
                 if isinstance(v, int):
-                    ihead['{:-16s}'.format(k[:min(len(k),16)])] = v
+                    ihead[k] = v
 
             # 4-byte floats
-            fhead  = subs.Odict()
+            fhead  = Odict()
             for k,v in self.head.items():
                 if isinstance(v, np.float32):
-                    fhead['{:-16s}'.format(k[:min(len(k),16)])] = v
+                    fhead[k] = v
 
         else:
             chead, dhead, ihead, fhead = Odict(), Odict(), Odict(), Odict()
 
         # write the record
-        fptr.write(struct.pack(
-            '2i16s7i',nbytes,self.fcode,self.units,self.npix,
-            self.narc,len(chead),len(dhead),len(ihead),len(fhead),
-            nbytes))
+        fptr.write(
+            struct.pack(
+                '2i16s7i',nbytes,self.fcode,tobytes(self.units,16),
+                self.npix,self.narc,
+                len(chead),len(dhead),len(ihead),len(fhead),
+                nbytes)
+        )
 
         # second record (names of header items)
         nbytes = 16*(len(chead)+len(dhead)+len(ihead)+len(fhead))
         fptr.write(struct.pack('i',nbytes))
         for key in chead.keys():
-            fptr.write(struct.pack('16s',key))
+            fptr.write(struct.pack('16s',tobytes(key,16)))
         for key in dhead.keys():
-            fptr.write(struct.pack('16s',key))
+            fptr.write(struct.pack('16s',tobytes(key,16)))
         for key in ihead.keys():
-            fptr.write(struct.pack('16s',key))
+            fptr.write(struct.pack('16s',tobytes(key,16)))
         for key in fhead.keys():
-            fptr.write(struct.pack('16s',key))
+            fptr.write(struct.pack('16s',tobytes(key,16)))
         fptr.write(struct.pack('i',nbytes))
 
         # third record (values of header items)
-        nbytes = 32*nchar + 8*ndoub + 4*nint + 4*nfloat
+        nbytes = 32*len(chead) + 8*len(dhead) + 4*len(ihead) + 4*len(fhead)
         fptr.write(struct.pack('i',nbytes))
         for value in chead.values():
-            fptr.write(struct.pack('32s',value))
+            fptr.write(struct.pack('32s',tobytes(value,32)))
         for value in dhead.values():
             fptr.write(struct.pack('d',value))
         for value in ihead.values():
@@ -305,26 +307,26 @@ class Molly:
         # fourth record (the arc coefficients)
         nbytes = 8*abs(self.narc)
         fptr.write(struct.pack('i',nbytes))
-        if narc != 0:
+        if self.narc != 0:
             self.arc.tofile(fptr)
         fptr.write(struct.pack('i',nbytes))
 
         # fifth record (data)
-        if fcode == 1 or fcode == 2:
-            nbytes = 4*npix
+        if self.fcode == 1 or self.fcode == 2:
+            nbytes = 4*self.npix
             fptr.write(struct.pack('i',nbytes))
             np.cast['float32'](self.f).tofile(fptr)
             fptr.write(struct.pack('i',nbytes))
 
-        elif fcode == 2 or fcode == 5:
-            nbytes = 8*npix
+        elif self.fcode == 2 or self.fcode == 5:
+            nbytes = 8*self.npix
             fptr.write(struct.pack('i',nbytes))
             np.cast['float32'](self.f).tofile(fptr)
             np.cast['float32'](self.fe).tofile(fptr)
             fptr.write(struct.pack('i',nbytes))
 
-        elif fcode == 3:
-            nbytes = 12*npix
+        elif self.fcode == 3:
+            nbytes = 12*self.npix
             counts = self.f * self.cfrat
             errors = self.fe * self.cfrat
             flux   = self.f.copy()
@@ -337,7 +339,13 @@ class Molly:
             fptr.write(struct.pack('i',nbytes))
 
         else:
-            raise Exception('fcode = ' + str(fcode) + ' not implemented')
+            raise Exception('fcode = ' + str(self.fcode) + ' not implemented')
+
+    def __repr__(self):
+        return 'Molly(fcode={:d}, head={!r}, npix={:d}, narc={:d}, arc={!r}, label={:s}, units={:s}, f={!r}, fe={!r}, cfrat={!r})'.format(
+            self.fcode, self.head, self.npix, self.narc, self.arc,
+            self.label, self.units, self.f, self.fe, self.cfrat
+        )
 
 def gmolly(fname):
     """Generator for reading a molly file.
@@ -366,7 +374,7 @@ def rmolly(fname, nspec=0):
           spectrum number to read. 0 = the whole lot returned as
           a list.
     """
-    if nspec:
+    if nspec == 0:
         mlist = []
         for mspec in gmolly(fname):
             mlist.append(mspec)
@@ -431,10 +439,16 @@ def skip_molly(fptr):
     fptr.seek(nskip,1)
     return True
 
-def _tostr(barray):
+def tostr(barray):
     return barray.decode('utf-8')
 
-def _read_molly_head(fptr):
+def tobytes(strng, length):
+    """Returns a string as a bytes object of fixed length (truncated
+    or padded with blanks if need be"""
+    b = strng.encode('utf-8')[:length]
+    return b + (length-len(b))*b' '
+
+def read_molly_head(fptr):
     """Reads the headers and arc (if present) of a molly spectrum.
 
     Returns (fcode, head, narc, arc, border) where fcode is the molly format
@@ -478,25 +492,25 @@ def _read_molly_head(fptr):
     # read names of string header items
     cnames = []
     for i in range(nchar):
-        name = _tostr(fptr.read(16).strip())
+        name = tostr(fptr.read(16).strip())
         cnames.append(name)
 
     # read names of double header items
     dnames = []
     for i in range(ndoub):
-        name = _tostr(fptr.read(16).strip())
+        name = tostr(fptr.read(16).strip())
         dnames.append(name)
 
     # read names of integer header items
     inames = []
     for i in range(nint):
-        name = _tostr(fptr.read(16).strip())
+        name = tostr(fptr.read(16).strip())
         inames.append(name)
 
     # read names of float header items
     fnames = []
     for i in range(nfloat):
-        name = _tostr(fptr.read(16).strip())
+        name = tostr(fptr.read(16).strip())
         fnames.append(name)
 
     # skip bytes at end of second record and at start of third
@@ -506,7 +520,7 @@ def _read_molly_head(fptr):
     head = Odict()
 
     for i in range(nchar):
-        value = _tostr(fptr.read(32).strip())
+        value = tostr(fptr.read(32).strip())
         head[cnames[i]] = value
 
     dvals = struct.unpack(border + str(ndoub) + 'd', fptr.read(8*ndoub))
@@ -534,8 +548,8 @@ def _read_molly_head(fptr):
 
     return (fcode, head, npix, narc, arc, border)
 
-def _read_molly_data(fptr, fcode, npix, border):
-    """label, units, f, fe, cfrat = _read_molly_data(fptr, fcode, npix, border)
+def read_molly_data(fptr, fcode, npix, border):
+    """label, units, f, fe, cfrat = read_molly_data(fptr, fcode, npix, border)
 
     Arguments::
 

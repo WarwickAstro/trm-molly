@@ -24,6 +24,7 @@ def genspec(args=None):
     head['Expose'] = np.float32(120.)
     head['Record'] = 12345
 
+    print(head)
     # Generate the trail
     NSPEC = 100
     P = 0.2
@@ -38,7 +39,7 @@ def genspec(args=None):
             f += 0.6*np.exp(-((w-4600.*(1+v/molly.C))/30.)**2/2.)
             counts = f*cfrat
             errors = np.sqrt(counts + 100)
-            fe = errors / self.cfrat
+            fe = errors / cfrat
             f = np.random.normal(f,fe)
             mspec = molly.Molly.fromdata(w,f,fe,cfrat,head)
             mspec.write(fout)
