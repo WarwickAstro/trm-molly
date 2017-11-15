@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Package for reading and writing "molly" spectra.
 
 "molly" is a program for the analysis of astronomical spectra which uses a
@@ -21,11 +23,11 @@ class Molly:
     closely aligned with their equivalents in the molly F77 program which
     should be consulted where the following is insufficient::
 
-      fcode : (int)
+      fcode : int
            an integer format code. Molly spectra can differ as to whether
            there are errors and this code distinguishes different cases.
 
-       head : (OrderedDict)
+       head : OrderedDict
            ordered dictionary of header items. NB. molly's internal headers
            support a restricted variety of data types (4-byte integers, 4- and
            8-byte floats and strings (32 bytes at most). The names (key
@@ -34,15 +36,16 @@ class Molly:
            types ignored, so you should check that the headers inside molly
            are what you expect.
 
-       npix : (int)
+       npix : int
            number of pixels
 
-       narc : (int)
-           number of arc coefficients. Can be 0. If positive, the coefficients
-           are the direct poly coefficients representing the wavelength scale;
-           if negative, they give the natural log of the wavelength scale.
+       narc : int
+           number of arc coefficients. Can be 0 meaning there are no arc
+           coefficients. If positive, the coefficients are the direct poly
+           coefficients representing the wavelength scale; if negative, they
+           give the natural log of the wavelength scale.
 
-       arc : (numpy.array)
+       arc : numpy.array
           the arc polynomial coefficients (if narc ne 0). Wavelengths are
           always in Angstroms. If narc > 0 then the wavelengths are the sum
           over index i of arc[i]*(x**i) where x = n/npix with n the array
@@ -51,26 +54,28 @@ class Molly:
           need to know this if you use 'wave' to get the wavelengths, but you
           do if you want to manipulate the wavelength scale.
 
-       label : (bytes)
+       label : bytes
            label to use to describe fluxes
 
-       units : (bytes)
+       units : bytes
            the units of the fluxes. Should be 'MILLIJANSKYS', 'COUNTS' or
            'FLAMBDA'.
 
-       f : (numpy.array)
+       f : numpy.ndarray
            fluxes (fcode == 3, 4 or 5) or counts(fcode = 1 or 2)
 
-       fe : (numpy.array)
+       fe : numpy.ndarray
            their uncertainties. < 0 indicates a point is masked. Can be
            None if there were no uncertainties.
 
-       cfrat : (numpy.array)
+       cfrat : numpy.ndarray
            the ratio of fluxes divided by counts. Can be None.
+
+       wave  : numpy.ndarray
+           heliocentric wavelengths.
 
     The best way to get a feel for these is to read in some molly spectra
     and look at these attributes one by one.
-
     """
 
     def __init__(self, fcode, head, npix, narc, arc,
