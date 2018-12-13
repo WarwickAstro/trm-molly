@@ -347,6 +347,10 @@ class Molly:
         else:
             raise Exception('fcode = ' + str(self.fcode) + ' not implemented')
 
+    def __len__(self):
+        """Number of pixels in the Molly"""
+        return self.npix
+
     def __repr__(self):
         return 'Molly(fcode={:d}, head={!r}, npix={:d}, narc={:d}, arc={!r}, label={:s}, units={:s}, f={!r}, fe={!r}, cfrat={!r})'.format(
             self.fcode, self.head, self.npix, self.narc, self.arc,
