@@ -17,16 +17,10 @@ Installation
 Once you have cloned trm.molly from github, you will have a sub-directory
 called trm-molly. 'cd' to that, and then install in the usual way i.e.
 
-python setup.py install
+pip install . --user
 
-[you might need super-user privileges, depending on your setup]
-
-or
-
-python setup.py install --user
-
-to install locally [you might need to adjust your PYTHONPATH to pick it up]
-
+This installs to a default local location that is automatically searched for
+by pythons and doesn't need root priviledges; look at 'pip' for more options.
 
 Once you have installed it, 'pydoc trm.molly' should get you started.
 
