@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # To use a consistent encoding
 from codecs import open
@@ -14,7 +14,7 @@ setup(
 
     name='trm.molly',
     version='1',
-    packages = ['trm','trm.molly',],
+    packages=find_packages(exclude=['docs', 'tests']),
 
     description="Access to molly spectra from Python",
     long_description=long_description,
@@ -28,14 +28,15 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy','scipy'],
+    install_requires=['numpy','scipy','pandas'],
 
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts' : [
-            'genspec=trm.molly.command_line:genspec',
+            'genspec=trm.molly.scripts.genspec:genspec',
+            'mkmollydb=trm.molly.scripts.mkmollydb:mkmollydb',
         ],
     },
 

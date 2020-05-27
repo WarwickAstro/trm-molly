@@ -31,5 +31,6 @@ and 'fe'
 """
 
 from .molly import *
+from . import scripts
 
 __all__ = molly.__all__
