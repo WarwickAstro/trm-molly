@@ -318,7 +318,7 @@ class Molly:
         fptr.write(struct.pack('i',nbytes))
 
         # fifth record (data)
-        if self.fcode == 1 or self.fcode == 2:
+        if self.fcode == 1 or self.fcode == 4:
             nbytes = 4*self.npix
             fptr.write(struct.pack('i',nbytes))
             np.cast['float32'](self.f).tofile(fptr)
@@ -335,9 +335,14 @@ class Molly:
             nbytes = 12*self.npix
             counts = self.f * self.cfrat
             errors = self.fe * self.cfrat
-            flux   = self.f.copy()
+            flux = self.f.copy()
+            print(np.linspace(1,len(flux),len(flux))[counts == 0.])
 
             flux[counts == 0.] = self.cfrat[counts == 0.]
+            ff = np.cast['float32'](counts)
+            print(
+                flux[counts == 0.], counts[ff == 0.]
+            )
             fptr.write(struct.pack('i',nbytes))
             np.cast['float32'](counts).tofile(fptr)
             np.cast['float32'](errors).tofile(fptr)
