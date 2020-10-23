@@ -336,13 +336,9 @@ class Molly:
             counts = self.f * self.cfrat
             errors = self.fe * self.cfrat
             flux = self.f.copy()
-            print(np.linspace(1,len(flux),len(flux))[counts == 0.])
-
             flux[counts == 0.] = self.cfrat[counts == 0.]
             ff = np.cast['float32'](counts)
-            print(
-                flux[counts == 0.], counts[ff == 0.]
-            )
+
             fptr.write(struct.pack('i',nbytes))
             np.cast['float32'](counts).tofile(fptr)
             np.cast['float32'](errors).tofile(fptr)
